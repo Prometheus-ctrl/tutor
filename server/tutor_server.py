@@ -340,6 +340,19 @@ def wav_peak(path):
         return 0.0
 
 
+def safe_remove(path):
+    """删除文件：任何 BaseException 都不能中断正在处理的请求。
+
+    Windows 上外部文件守卫/杀软可能用 SystemExit 之类中断删除，
+    ASR 轮转清理时如果它冒出来，整个请求会直接断连（浏览器报 Failed to fetch）。
+    """
+    try:
+        os.remove(path)
+        return True
+    except BaseException:
+        return False
+
+
 def keep_asr_audio(data, keep=10):
     """把最近几条录音留在本地（tutor/data/asr-debug），方便排查识别问题。"""
     try:
@@ -350,11 +363,8 @@ def keep_asr_audio(data, keep=10):
             f.write(data)
         files = sorted(f for f in os.listdir(d) if f.endswith(".wav"))
         for old in files[:-keep]:
-            try:
-                os.remove(os.path.join(d, old))
-            except OSError:
-                pass
-    except Exception:
+            safe_remove(os.path.join(d, old))
+    except BaseException:
         pass
 
 
@@ -827,10 +837,7 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:
             return self._json(500, {"error": "识别失败：%s" % e})
         finally:
-            try:
-                os.remove(path)
-            except OSError:
-                pass
+            safe_remove(path)
 
     def _figure_info(self, paper, index):
         try:
@@ -869,10 +876,7 @@ class Handler(BaseHTTPRequestHandler):
                 path = os.path.abspath(os.path.join(d, rel))
                 base = os.path.abspath(d)
                 if path.startswith(base + os.sep) and os.path.isfile(path):
-                    try:
-                        os.remove(path)
-                    except OSError:
-                        pass
+                    safe_remove(path)
                 return self._json(200, {"ok": True})
             raw = str(body.get("image") or "")
             if not raw.startswith("data:image/"):

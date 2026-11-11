@@ -828,7 +828,10 @@ def synth_wav(text, out_dir, provider=None, voice=None):
         for n in os.listdir(out_dir):
             p = os.path.join(out_dir, n)
             if n.endswith(".wav") and os.path.isfile(p) and os.path.getmtime(p) < cutoff:
-                os.remove(p)
-    except OSError:
+                try:
+                    os.remove(p)
+                except BaseException:
+                    pass
+    except BaseException:
         pass
     return {"file": name, "usage": data.get("usage", {})}
