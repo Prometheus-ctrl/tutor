@@ -1,0 +1,11 @@
+{
+  "chat": {
+    "history_window": 48,
+    "temperature": 0.4
+  },
+  "preference": {
+    "every_turns": 3,
+    "max_per_batch": 4,
+    "variant_instruction": "这次只回应一句：先确认学生讲到的位置，不要追问，也不要解释。"
+  }
+}

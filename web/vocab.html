@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>讲伴 · 生词</title>
+<link rel="icon" type="image/svg+xml" href="/brand.svg">
+<link rel="stylesheet" href="/app.css">
+<style>
+  .vocab-form{display:grid;grid-template-columns:180px 1fr 220px auto;gap:8px;align-items:start}
+  .vocab-form input,.vocab-form textarea,.vocab-form select{border:1px solid var(--line);border-radius:9px;
+    padding:8px 10px;background:#fff;font:inherit;font-size:13px;outline:none}
+  .vocab-form textarea{min-height:42px;resize:vertical}
+  .vocab-form input:focus,.vocab-form textarea:focus,.vocab-form select:focus{border-color:#93c5fd}
+  @media(max-width:800px){.vocab-form{grid-template-columns:1fr}}
+  .vocab-item{border:1px solid var(--line);border-radius:11px;padding:9px 11px;margin:7px 0;background:#fff}
+  .vocab-word{font-size:15px;font-weight:800;color:#1e293b}
+  .vocab-sentence{font-size:12.5px;color:#475569;line-height:1.7;margin-top:4px;white-space:pre-wrap}
+  .vocab-meta{font-size:11px;color:#94a3b8;margin-top:5px}
+  .vocab-actions{display:flex;gap:6px;align-items:center}
+</style>
+</head>
+<body>
+<header>
+  <a class="brand" href="/"><img class="brand-icon" src="/brand.svg" alt="">讲伴 <span>生词</span></a>
+  <nav class="nav">
+    <a href="/">首页</a>
+    <a href="/plan.html">计划</a>
+    <a href="/time.html">时间</a>
+    <a href="/talk.html">讲题</a>
+    <a href="/writing.html">写作</a>
+    <a class="on" href="/vocab.html">生词</a>
+  </nav>
+</header>
+<main>
+  <section class="hero">
+    <h1>生词回收</h1>
+    <p>阅读里碰到的词，先存原句；下次阅读前看原句猜词义。生词不进 FSRS。</p>
+  </section>
+  <div id="vocabStats" class="stats"></div>
+  <section class="section">
+    <h2>添加一个词</h2>
+    <form id="vocabForm" class="vocab-form">
+      <input id="vocabWord" placeholder="单词" autocomplete="off" required>
+      <textarea id="vocabSentence" placeholder="原句（保留上下文）"></textarea>
+      <select id="vocabPaper"><option value="">不挂文章</option></select>
+      <button class="btn" type="submit">保存</button>
+    </form>
+  </section>
+  <section class="section">
+    <h2>词本</h2>
+    <div id="vocabList" class="list"><div class="empty">加载中…</div></div>
+  </section>
+  <div class="foot">先看原句，再看单词；认识后标为「已认」。</div>
+</main>
+<script src="/vocab.js"></script>
+</body>
+</html>

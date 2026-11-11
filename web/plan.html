@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>讲伴 · 计划</title>
+<link rel="icon" type="image/svg+xml" href="/brand.svg">
+<link rel="stylesheet" href="/app.css">
+<style>
+  .plan-modal{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;
+    padding:16px;background:rgba(15,23,42,.42);backdrop-filter:blur(2px)}
+  .plan-modal[hidden]{display:none}
+  .plan-modal-card{width:min(880px,96vw);max-height:86vh;overflow:auto;background:#fff;
+    border-radius:16px;padding:16px 18px;box-shadow:0 20px 60px rgba(15,23,42,.28)}
+  .plan-modal-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .plan-modal-head b{font-size:17px}
+  .plan-modal-close{border:0;background:none;font-size:24px;color:#64748b;cursor:pointer;line-height:1}
+  .plan-summary{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0 12px;color:#64748b;font-size:12px}
+  .plan-paper{border-top:1px solid #e2e8f0;padding:8px 0}
+  .plan-paper summary{cursor:pointer;font-size:13px;font-weight:700;color:#1e293b;
+    display:flex;justify-content:space-between;gap:10px;list-style:none}
+  .plan-paper summary::-webkit-details-marker{display:none}
+  .plan-paper summary span{color:#64748b;font-weight:400}
+  .plan-unit{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:5px 8px;border-bottom:1px dashed #eef2f7;font-size:12px}
+  .plan-unit a{color:#1d4ed8;text-decoration:none}
+  .plan-unit .muted{color:#94a3b8}
+  .unit-toggle{border:1px solid #e2e8f0;background:#fff;color:#64748b;border-radius:7px;
+    padding:2px 7px;font-size:11px;cursor:pointer}
+  .unit-toggle:hover{border-color:#93c5fd;color:#1d4ed8;background:#f8fbff}
+  .unit-toggle:disabled{opacity:.5;cursor:default}
+</style>
+</head>
+<body>
+<header>
+  <a class="brand" href="/"><img class="brand-icon" src="/brand.svg" alt="">讲伴 <span>计划</span></a>
+  <nav class="nav">
+    <a href="/">首页</a>
+    <a class="on" href="/plan.html">计划</a>
+    <a href="/time.html">时间</a>
+    <a href="/talk.html">讲题</a>
+    <a href="/writing.html">写作</a>
+    <a href="/vocab.html">生词</a>
+    <a href="/correct.html">切题校正</a>
+  </nav>
+</header>
+<main>
+  <section class="hero">
+    <h1 id="planTitle">材料推进到哪了？</h1>
+    <p id="planSub">目标 → 任务 → 计划 → 整卷。这里只记事实，不判断掌握。</p>
+    <div class="hero-actions"><a id="allPlansLink" class="btn ghost" href="/plan.html" hidden>看全部科目</a></div>
+  </section>
+  <div id="headline" class="stats"></div>
+  <div id="tree" class="section"><div class="empty">加载中…</div></div>
+  <div class="section">
+    <h2>未归档整卷</h2>
+    <div id="unassigned" class="list"><div class="empty">加载中…</div></div>
+  </div>
+  <div class="foot">到期只在题目上；计划页不显示未来到期日期。</div>
+</main>
+
+<div id="planModal" class="plan-modal" hidden>
+  <div class="plan-modal-card">
+    <div class="plan-modal-head">
+      <b id="planModalTitle">计划单元</b>
+      <button id="planModalClose" class="plan-modal-close" type="button" aria-label="关闭">×</button>
+    </div>
+    <div id="planModalBody"></div>
+  </div>
+</div>
+<script src="/plan.js"></script>
+</body>
+</html>

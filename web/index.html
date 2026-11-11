@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>讲伴 · 切题校正</title>
+<link rel="icon" type="image/svg+xml" href="/brand.svg">
+<link rel="stylesheet" href="/katex/katex.min.css">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <div class="brand"><img class="brand-icon" src="/brand.svg" alt="">讲伴 <span>切题校正</span></div>
+  <select id="paperSelect"></select>
+  <button id="saveBtn" class="primary">保存全部</button>
+  <a class="talk-link" href="/talk.html">讲题（语音）</a>
+  <a class="talk-link" href="/">首页</a>
+  <span id="status" class="status"></span>
+</header>
+<main id="list"></main>
+<footer>右边公式不对 →「重读此题」；图本身糊 →「重拍此题」；都不行才「编辑文字」。DeepSeek 只拿文字讲题，所以文字必须确认。</footer>
+<script src="/katex/katex.min.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

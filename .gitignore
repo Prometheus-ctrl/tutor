@@ -1,0 +1,8 @@
+# tutor 实验版：样本、密钥、数据都不进仓库
+samples/*
+!samples/.gitkeep
+data/
+tts/
+media/
+__pycache__/
+*.pyc

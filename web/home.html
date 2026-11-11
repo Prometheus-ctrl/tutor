@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>讲伴 · 首页</title>
+<link rel="icon" type="image/svg+xml" href="/brand.svg">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<header>
+  <a class="brand" href="/"><img class="brand-icon" src="/brand.svg" alt="">讲伴 <span>你讲，我查漏</span></a>
+  <nav class="nav">
+    <a class="on" href="/">首页</a>
+    <a href="/plan.html">计划</a>
+    <a href="/time.html">时间</a>
+    <a href="/talk.html">讲题</a>
+    <a href="/vocab.html">生词</a>
+    <a href="/report.html">学习报告</a>
+    <a href="/correct.html">切题校正</a>
+  </nav>
+</header>
+<main>
+  <section class="hero">
+    <h1 id="heroTitle">今天从哪道题开始？</h1>
+    <p id="heroSub">四个科目，材料推进，到期复述。</p>
+    <div class="hero-actions">
+      <a class="btn" href="/talk.html">开始讲题</a>
+      <a class="btn ghost" href="/time.html">排今天</a>
+      <a class="btn ghost" href="/plan.html">看计划</a>
+      <a class="btn ghost" href="/report.html">学习报告</a>
+    </div>
+  </section>
+
+  <div id="stats" class="stats"></div>
+
+  <div class="grid">
+    <section class="card">
+      <div class="card-head"><h2>四个科目</h2><a class="muted" href="/plan.html">全部计划 →</a></div>
+      <div id="subjects" class="subjects"><div class="empty">加载中…</div></div>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>今天</h2><span id="todayBadge" class="count">未排</span></div>
+      <div id="today"><div class="empty">还没有排今天。</div></div>
+      <div class="row" style="margin-top:9px;"><a class="btn dark" href="/time.html">去排今天</a></div>
+    </section>
+  </div>
+
+  <section class="card section">
+    <div class="card-head"><h2>当前到期</h2><span id="dueBadge" class="count">0</span></div>
+    <div id="dueList" class="list"><div class="empty">今天没有到期题。</div></div>
+  </section>
+
+  <div class="foot">到期只在题上；计划页不显示未来日期。</div>
+</main>
+<script src="/home.js"></script>
+</body>
+</html>

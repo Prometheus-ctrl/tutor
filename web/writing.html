@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>讲伴 · 英语写作</title>
+<link rel="icon" type="image/svg+xml" href="/brand.svg">
+<link rel="stylesheet" href="/app.css">
+<style>
+body{background:#f8fafc}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 18px 60px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.top h1{font-size:22px;margin:0}
+.top a{color:#2563eb;text-decoration:none;font-size:14px}
+.layout{display:grid;grid-template-columns:260px 1fr;gap:18px}
+@media(max-width:800px){.layout{grid-template-columns:1fr}}
+.side,.main{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px}
+.side h2,.main h2{font-size:15px;margin:0 0 10px}
+select{width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;font-size:14px}
+.meta{color:#64748b;font-size:12px;margin:10px 0 0;line-height:1.7}
+.prompt{white-space:pre-wrap;line-height:1.9;font-size:14.5px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;max-height:340px;overflow:auto}
+.prompt-image-wrap{margin-top:10px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;padding:8px;text-align:center}
+.prompt-image{display:block;max-width:100%;max-height:360px;margin:0 auto;object-fit:contain}
+.template-box{margin-top:10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;padding:10px 12px}
+.template-box summary{cursor:pointer;font-size:13px;color:#334155;font-weight:600}
+.template-pick{display:flex;align-items:center;gap:10px;margin-top:8px}
+.template-pick select{max-width:320px;padding:6px;border:1px solid #cbd5e1;border-radius:7px;font-size:12px}
+.template-pick .hint{font-size:11px;color:#94a3b8}
+.template-body{margin:8px 0 0;max-height:360px;overflow:auto;font-size:12.5px;line-height:1.75;color:#334155;background:#f8fafc;border-radius:8px;padding:10px}
+.template-body p{margin:4px 0}
+.template-body .tpl-h{margin:10px 0 4px;font-size:13.5px;color:#1e293b}
+.template-body .tpl-li{margin:2px 0 2px 4px}
+.template-body .tpl-gap{height:4px}
+.template-body .tpl-note{margin:6px 0;padding:6px 8px;border-left:3px solid #bfdbfe;background:#eff6ff;color:#475569}
+.template-body .tpl-code{white-space:pre-wrap;background:#eef2f7;border-radius:6px;padding:8px;font:12px/1.7 ui-monospace,Consolas,monospace;margin:6px 0}
+.template-body .tpl-table{width:100%;border-collapse:collapse;margin:6px 0;font-size:12px}
+.template-body .tpl-table th,.template-body .tpl-table td{border:1px solid #e2e8f0;padding:4px 6px;text-align:left;vertical-align:top}
+.template-body .tpl-table th{background:#eef2f7;color:#475569}
+textarea{width:100%;min-height:300px;box-sizing:border-box;margin-top:14px;padding:14px;border:1px solid #cbd5e1;border-radius:10px;font:15px/1.8 system-ui;resize:vertical}
+.row{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}
+button{border:0;border-radius:9px;padding:10px 16px;background:#2563eb;color:#fff;font-weight:600;cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+.count{color:#64748b;font-size:13px;margin-left:auto}
+.status{font-size:13px;color:#64748b;margin-top:8px}
+.status.ok{color:#15803d}.status.err{color:#b91c1c}
+.feedback{margin-top:14px;border:1px solid #dbeafe;background:#eff6ff;border-radius:10px;padding:12px 14px;font-size:13.5px;line-height:1.75}
+.feedback h3{font-size:14px;margin:0 0 8px}
+.feedback .score{font-weight:700;color:#1d4ed8;margin-bottom:6px}
+.feedback .scale{color:#64748b;font-size:12px;margin-bottom:8px}
+.feedback ul{margin:6px 0 0 18px;padding:0}
+.feedback li{margin:6px 0}
+.feedback .quote{color:#475569;font-style:italic}
+.feedback .next{margin-top:10px;padding-top:8px;border-top:1px dashed #bfdbfe;font-weight:600;color:#1e40af}
+.feedback .action-list{margin-top:4px;font-weight:400;color:#334155}
+.feedback .action-list div{margin:3px 0}
+.title-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.score-toggle{font-size:12px;color:#64748b;white-space:nowrap;display:flex;align-items:center;gap:4px}
+.feedback .clean{margin-top:8px;padding:8px 10px;border-radius:8px;background:#f0fdf4;color:#166534;font-weight:600}
+.feedback details{margin-top:10px;color:#64748b;font-size:13px}
+.feedback details summary{cursor:pointer}
+.compare{margin-top:14px;border:1px solid #e2e8f0;border-radius:10px;padding:12px;background:#fff}
+.compare h3{font-size:14px;margin:0 0 8px}
+.diff-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:800px){.diff-cols{grid-template-columns:1fr}}
+.diff-col{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;font-size:13px;line-height:1.85;white-space:pre-wrap}
+.diff-col b{display:block;font-size:12px;color:#64748b;margin-bottom:6px}
+.diff-col del{background:#fee2e2;color:#991b1b;text-decoration:line-through}
+.diff-col ins{background:#dcfce7;color:#166534;text-decoration:none}
+.report-box{margin-top:14px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;padding:12px}
+.report-box pre{white-space:pre-wrap;font:13px/1.75 ui-monospace,Consolas,monospace;color:#334155;margin:8px 0 0;max-height:420px;overflow:auto}
+.lightbox{position:fixed;inset:0;z-index:99;background:rgba(15,23,42,.88);display:flex;align-items:center;justify-content:center;padding:24px}
+.lightbox[hidden]{display:none}
+.lightbox img{max-width:94vw;max-height:88vh;object-fit:contain;background:#fff;border-radius:6px}
+.lightbox .close{position:fixed;top:16px;right:20px;border:1px solid rgba(255,255,255,.6);background:rgba(255,255,255,.15);color:#fff;border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer}
+</style></head><body><div class="wrap">
+<div class="top"><h1>英语写作</h1><a href="/plan.html">← 回到计划</a></div>
+<div class="layout">
+  <section class="side"><h2>题目</h2><select id="taskSelect"></select><div class="meta" id="taskMeta"></div></section>
+  <section class="main"><div class="title-row"><h2 id="taskTitle">选择一篇写作</h2><label class="score-toggle"><input type="checkbox" id="scoreToggle"> 参考评分</label></div><div class="prompt" id="prompt"></div>
+    <div class="prompt-image-wrap" id="promptImageWrap" hidden>
+      <a id="promptImageLink" href="#" target="_blank" rel="noopener"><img id="promptImage" class="prompt-image" alt="题目图表"></a>
+    </div>
+    <details class="template-box" id="templateBox" hidden>
+      <summary>模板：<span id="templateTitle"></span></summary>
+      <div class="template-pick"><select id="templateSelect"></select><span class="hint">只用骨架，不整篇照背</span></div>
+      <div class="template-body" id="templateBody"></div>
+    </details>
+    <textarea id="draft" placeholder="在这里写草稿；先写提纲也可以。"></textarea>
+    <div class="row"><button id="save">保存草稿</button><button id="feedbackBtn">AI 批改</button><button id="finalBtn">我改好了</button><button id="reportBtn">看修改报告</button><span class="count" id="count"></span></div>
+    <div class="feedback" id="feedbackBox" hidden></div>
+    <div class="compare" id="compareBox" hidden></div>
+    <div class="report-box" id="reportBox" hidden>
+      <div class="row" style="justify-content:space-between;"><b>修改报告</b><button id="reportClose" type="button">关闭报告</button></div>
+      <pre id="reportText"></pre>
+    </div>
+    <div class="status" id="status"></div>
+  </section>
+</div></div>
+<div class="lightbox" id="lightbox" hidden>
+  <button class="close" id="lightboxClose" type="button">关闭大图</button>
+  <img id="lightboxImg" alt="题目大图">
+</div>
+<script src="/writing.js"></script></body></html>

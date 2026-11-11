@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>本地 Qwen3-TTS 试听</title>
+<style>
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f8fafc;color:#0f172a;margin:0;padding:28px}
+main{max-width:760px;margin:0 auto}
+h1{font-size:22px;margin:0 0 6px}
+.sub{color:#64748b;font-size:14px;margin-bottom:22px;line-height:1.7}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px 18px;margin:14px 0;box-shadow:0 2px 8px rgba(15,23,42,.04)}
+.name{font-weight:700;font-size:16px;margin-bottom:4px}
+.desc{color:#64748b;font-size:13px;margin-bottom:10px}
+audio{width:100%}
+.note{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.7;margin:18px 0}
+a{color:#2563eb}
+</style></head><body><main>
+<h1>语音试听</h1>
+<div class="sub">对比云端 Serena、本地 CPU Serena、本地 GPU Serena；讲题页现在还是旧 Cherry。</div>
+<div class="note">试听方法：点每个播放器。重点听本地 GPU Serena 能不能直接当讲题声音。讲题页还没切。</div>
+
+<div class="card"><div class="name">本地 Serena · GPU（新装好）</div><div class="desc">RTX 4070；生成一句约 8～11 秒，声音和 CPU 版相同</div><audio controls preload="metadata" src="/audio/gpu-serena.wav"></audio></div>
+
+<div class="card"><div class="name">云端 Serena（讲题页可直接用）</div><div class="desc">和讲题页同一套云端 TTS，速度快；先听这个能不能接受</div><audio controls preload="metadata" src="/audio/cloud-serena.wav"></audio></div>
+
+<div class="card"><div class="name">本地 Serena（CPU）</div><div class="desc">声音基准；CPU 生成一句约 27 秒，已不作为正式方案</div><audio controls preload="metadata" src="/audio/serena.wav"></audio></div>
+<div class="card"><div class="name">Vivian（本地）</div><div class="desc">女声，偏清亮</div><audio controls preload="metadata" src="/audio/vivian.wav"></audio></div>
+<div class="card"><div class="name">Uncle_Fu（本地）</div><div class="desc">男声，偏沉稳</div><audio controls preload="metadata" src="/audio/uncle_fu.wav"></audio></div>
+
+<div class="sub">同一句内容：我们先看第一题。已知表头元素为 c 的单链表，你能说说第一步怎么判断吗？</div>
+</main></body></html>

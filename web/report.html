@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>讲伴 · 学习报告</title>
+<link rel="icon" type="image/svg+xml" href="/brand.svg">
+<link rel="stylesheet" href="/app.css">
+<style>
+  .report-wrap{max-width:980px;margin:0 auto;padding:20px 16px 60px}
+  .report-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 16px}
+  .report-days{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 16px}
+  .report-days button{padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);cursor:pointer}
+  .report-days button.on{background:#eff6ff;border-color:#93c5fd;color:#1d4ed8}
+  .report-body{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;line-height:1.9;color:#1e293b}
+  .report-body h1{font-size:20px;margin:4px 0 12px}
+  .report-body h2{font-size:15px;margin:16px 0 6px;color:#334155}
+  .report-body ul{margin:4px 0 8px 20px;padding:0}
+  .report-body p{margin:6px 0}
+  .report-raw{margin-top:14px;font-size:12px;color:#64748b}
+  .report-raw pre{white-space:pre-wrap;font:12px/1.7 ui-monospace,Consolas,monospace;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:10px;max-height:360px;overflow:auto}
+</style>
+</head>
+<body>
+<header>
+  <a class="brand" href="/"><img class="brand-icon" src="/brand.svg" alt="">讲伴 <span>学习报告</span></a>
+  <nav class="nav">
+    <a href="/">首页</a>
+    <a href="/plan.html">计划</a>
+    <a href="/time.html">时间</a>
+    <a href="/talk.html">讲题</a>
+    <a class="on" href="/report.html">学习报告</a>
+  </nav>
+</header>
+<main class="report-wrap">
+  <h1>学习报告</h1>
+  <p class="muted">每天一份 Markdown 存档；打开时按秘书口吻整理。</p>
+  <div class="report-toolbar">
+    <button class="btn" id="genToday">生成/更新今天报告</button>
+    <button class="btn ghost" id="loadLatest">看最近一份</button>
+    <span class="muted" id="reportStatus"></span>
+  </div>
+  <div class="report-days" id="reportDays"></div>
+  <div class="report-body" id="reportBody"><div class="empty">还没有报告。</div></div>
+  <div class="report-raw" id="reportRaw" hidden></div>
+</main>
+<script src="/report.js"></script>
+</body>
+</html>
