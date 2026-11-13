@@ -9,6 +9,14 @@ try {
   speakerMode = localStorage.getItem('tutorSpeakerMode') === '1';
 } catch (e) { micDeviceId = ''; speakerMode = false; }
 
+// 到期复习“绕路”状态：被到期题拉去别的卷时记住原卷，做完回来继续
+function setDetour(d) {
+  state.detour = d || null;
+  try {
+    sessionStorage.setItem('tutorDetour', state.detour ? JSON.stringify(state.detour) : '');
+  } catch (e) { /* ignore */ }
+}
+
 async function refreshMicDevices() {
   const sel = $('#micSelect');
   if (!sel || !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
@@ -1499,16 +1507,35 @@ async function nextProblem() {
   const btn = $('#nextBtn');
   btn.disabled = true;
   try {
-    const data = await api('/api/app/problem/' + encodeURIComponent(state.paper) +
-      '/' + encodeURIComponent($('#problem').value || 0) + '/next');
+    const curIndex = Number($('#problem').value || 0);
+    let fromPaper = state.paper;
+    let fromIndex = curIndex;
+    // 被到期复习题拉走时，记住原来的卷；做完到期题后下一题回原卷继续
+    const returning = !!(state.detour && state.paper === state.detour.duePaper);
+    if (returning) {
+      fromPaper = state.detour.originPaper;
+      fromIndex = state.detour.originIndex;
+    }
+    const data = await api('/api/app/problem/' + encodeURIComponent(fromPaper) +
+      '/' + encodeURIComponent(fromIndex) + '/next');
     const n = data.next;
+    if (n.paper !== fromPaper) {
+      if (!state.detour) {
+        setDetour({ originPaper: fromPaper, originIndex: fromIndex, duePaper: n.paper, dueIndex: n.index });
+      } else {
+        setDetour({ originPaper: state.detour.originPaper, originIndex: state.detour.originIndex, duePaper: n.paper, dueIndex: n.index });
+      }
+    } else if (state.detour && n.paper === state.detour.originPaper) {
+      setDetour(null);
+    }
     resetSession();
     await loadPaper(n.paper, { skipSession: true });
     $('#problem').value = String(n.index);
     renderProblem();
     syncPosition();
     await restoreHistory();
-    status('已切到下一题。', 'ok');
+    status(state.detour ? '到期复习：先做这道，下一题会回到原卷。'
+      : (returning ? '已回到原来的卷。' : '已切到下一题。'), 'ok');
   } catch (e) {
     status(e.message === 'no next problem' ? '这是最后一题了。' : ('下一题失败：' + e.message), 'err');
   } finally {
@@ -1518,6 +1545,7 @@ async function nextProblem() {
 
 async function previousProblem() {
   if (!state.paper) return;
+  setDetour(null);
   const btn = $('#prevBtn');
   btn.disabled = true;
   try {
@@ -2208,10 +2236,12 @@ $('#examToggle').addEventListener('change', e => {
   status(state.examMode ? '考试模式：只给最小提示。' : '已回到普通讲题。', 'ok');
 });
 $('#paper').addEventListener('change', async e => {
+  setDetour(null);
   try { resetSession(); await loadPaper(e.target.value); syncPosition(); await restoreHistory(); }
   catch (err) { status(err.message, 'err'); }
 });
 $('#problem').addEventListener('change', async () => {
+  setDetour(null);
   resetSession();
   renderProblem();
   syncPosition();
@@ -2297,6 +2327,11 @@ async function openFromQuery() {
     await restoreHistory();
   }
 }
+
+try {
+  const savedDetour = sessionStorage.getItem('tutorDetour');
+  if (savedDetour) state.detour = JSON.parse(savedDetour);
+} catch (e) { /* ignore */ }
 
 loadConfig();
 loadDue();
