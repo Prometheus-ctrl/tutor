@@ -437,6 +437,27 @@ function openImage(src, original, pageMode) {
   if (close) close.focus();
 }
 
+function fmtDueTime(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const pad = n => String(n).padStart(2, '0');
+  const now = new Date();
+  const y = d.getFullYear() === now.getFullYear() ? '' : (d.getFullYear() + '年');
+  return y + (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+
+function relDueTime(iso) {
+  const ms = new Date(iso).getTime() - Date.now();
+  if (!isFinite(ms)) return '';
+  const abs = Math.abs(ms);
+  const suffix = ms < 0 ? '前' : '后';
+  const mins = Math.round(abs / 60000);
+  if (mins < 60) return '约 ' + Math.max(1, mins) + ' 分钟' + suffix;
+  const hours = Math.round(abs / 3600000);
+  if (hours < 48) return '约 ' + hours + ' 小时' + suffix;
+  return '约 ' + Math.round(abs / 86400000) + ' 天' + suffix;
+}
+
 function renderProblem() {
   const p = state.problems[Number($('#problem').value || 0)];
   if (!p) { $('#problemText').textContent = '这张卷子没有题。'; return; }
@@ -468,6 +489,14 @@ function renderProblem() {
       ? '上次没结束；直接发第一句会接上次的对话。'
       : '上次已结束；这次是新会话。';
     html = '<div class="last-hint">这题上次练过：' + when + rounds + '。' + note + '</div>' + html;
+  }
+  if (p.review_due) {
+    const dueMs = new Date(p.review_due).getTime();
+    if (isFinite(dueMs) && dueMs <= Date.now()) {
+      html = '<div class="review-hint due">⏰ 到期复习：原定 ' + esc(fmtDueTime(p.review_due)) + ' 到期（' + esc(relDueTime(p.review_due)) + '）</div>' + html;
+    } else if (isFinite(dueMs)) {
+      html = '<div class="review-hint">✅ 已复习过 · 下次到期 ' + esc(fmtDueTime(p.review_due)) + '（' + esc(relDueTime(p.review_due)) + '）</div>' + html;
+    }
   }
   $('#problemText').innerHTML = html;
   loadFigureInfo();

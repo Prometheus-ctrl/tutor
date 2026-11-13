@@ -494,6 +494,14 @@ def paper_detail(paper_id):
                 p["last_session_at"] = last["ended_at"] or last["started_at"]
                 p["last_session_turns"] = last["n"]
                 p["last_session_open"] = last["ended_at"] is None
+            rv = c.execute(
+                "SELECT due, state, last_rating FROM reviews WHERE problem_id=?",
+                (p["id"],),
+            ).fetchone()
+            if rv:
+                p["review_due"] = rv["due"]
+                p["review_state"] = rv["state"]
+                p["review_last_rating"] = rv["last_rating"]
         pages = max([p.get("page") or 1 for p in problems] or [1])
         return {
             "id": paper["id"],
