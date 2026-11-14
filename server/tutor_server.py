@@ -752,7 +752,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._file(target)
         if path.startswith("/katex/"):
             name = path[len("/katex/"):]
-            base = os.path.abspath(os.path.join(os.path.dirname(ROOT), "app", "素材", "katex"))
+            # 自包含：用 tutor 自己的 web/katex，不依赖工作台目录
+            base = os.path.abspath(os.path.join(WEB, "katex"))
             target = os.path.abspath(os.path.join(base, name))
             if not target.startswith(base + os.sep) or not os.path.isfile(target):
                 return self._json(404, {"error": "not found"})
