@@ -369,6 +369,12 @@
     font-size:12px;color:#64748b;padding:0 2px;flex:none}
   .image-back{border:1px solid var(--line);background:#fff;color:#1d4ed8;border-radius:8px;
     padding:5px 10px;font-size:12px;cursor:pointer}
+  .image-pages{display:flex;align-items:center;gap:4px}
+  .image-pages[hidden]{display:none}
+  .image-pages button{border:1px solid var(--line);background:#fff;color:#334155;border-radius:7px;
+    min-width:26px;height:26px;padding:0 7px;font-size:14px;line-height:1;cursor:pointer}
+  .image-pages button:disabled{opacity:.35;cursor:default}
+  .image-pages span{font-size:12px;color:#475569;min-width:78px;text-align:center}
   .image-back:hover{background:#eff6ff}
   .image-zoom{display:flex;align-items:center;gap:4px}
   .image-zoom button{border:1px solid var(--line);background:#fff;color:#334155;border-radius:7px;
@@ -601,6 +607,11 @@
     <div id="imageOriginalView" class="image-original-view" hidden>
       <div class="image-original-head">
         <button id="imageBack" class="image-back" type="button">← 返回大图</button>
+        <div class="image-pages">
+          <button id="pagePrev" type="button" title="上一页">‹</button>
+          <span id="pageLabel">第 - / - 页</span>
+          <button id="pageNext" type="button" title="下一页">›</button>
+        </div>
         <div class="image-zoom">
           <button id="imageZoomOut" type="button" title="缩小">−</button>
           <span id="imageZoomLabel">100%</span>
@@ -679,6 +690,6 @@
   pane.appendChild(marks);
 })();
 </script>
-<script src="/talk.js?v=20261114a"></script>
+<script src="/talk.js?v=20261114b"></script>
 </body>
 </html>

@@ -174,6 +174,9 @@ function resetImageModalView() {
   const orig = $('#imageOriginalImg');
   imageZoom = 1;
   imageMode = '';
+  state.originalPage = null;
+  const pages = document.querySelector('.image-pages');
+  if (pages) pages.hidden = true;
   if (img) {
     img.hidden = false;
     img.classList.remove('page-mode');
@@ -193,6 +196,35 @@ function resetImageModalView() {
   if (label) label.textContent = '100%';
 }
 
+function setOriginalPage(url) {
+  const m = String(url || '').match(/\/media\/([^/]+)\/pages\/page-(\d+)\.jpg(\?[^#]*)?$/);
+  const wrap = document.querySelector('.image-pages');
+  if (!m) {
+    state.originalPage = null;
+    if (wrap) wrap.hidden = true;
+    return;
+  }
+  const page = parseInt(m[2], 10);
+  const total = Math.max(state.paperPages || 1, page);
+  state.originalPage = { paper: m[1], page: page, total: total, query: m[3] || '' };
+  if (wrap) wrap.hidden = false;
+  const label = $('#pageLabel');
+  if (label) label.textContent = '第 ' + page + ' / ' + total + ' 页';
+  const prev = $('#pagePrev');
+  const next = $('#pageNext');
+  if (prev) prev.disabled = page <= 1;
+  if (next) next.disabled = page >= total;
+}
+
+function gotoOriginalPage(page) {
+  const info = state.originalPage;
+  if (!info) return;
+  const target = Math.min(Math.max(1, page), info.total);
+  if (target === info.page) return;
+  const url = '/media/' + info.paper + '/pages/page-' + String(target).padStart(2, '0') + '.jpg' + (info.query || '');
+  showOriginalPage(url);
+}
+
 function showOriginalPage(url) {
   document.querySelector('#imageFull').hidden = true;
   document.querySelector('#imageOriginal').hidden = true;
@@ -201,6 +233,7 @@ function showOriginalPage(url) {
   const orig = document.querySelector('#imageOriginalImg');
   const isImage = /\.(png|jpe?g|webp|gif|bmp|svg)([?#]|$)/i.test(url);
   imageZoom = 1;
+  setOriginalPage(isImage ? url : null);
   if (isImage) {
     imageMode = 'image';
     orig.hidden = false;
@@ -594,6 +627,7 @@ async function loadPaper(id, opts) {
     if (token !== state.paperToken) return;
     paperSel.value = id;
     state.problems = data.problems || [];
+    state.paperPages = data.pages || 1;
     problemSel.innerHTML = '';
     state.problems.forEach((p, i) => {
       const o = document.createElement('option');
@@ -2158,6 +2192,8 @@ $('#imageFit').addEventListener('click', () => {
   imageZoom = 1;
   applyImageZoom();
 });
+$('#pagePrev').addEventListener('click', () => gotoOriginalPage(((state.originalPage || {}).page || 1) - 1));
+$('#pageNext').addEventListener('click', () => gotoOriginalPage(((state.originalPage || {}).page || 1) + 1));
 $('#imageModal').addEventListener('click', e => {
   if (e.target === $('#imageModal')) {
     $('#imageModal').hidden = true;
