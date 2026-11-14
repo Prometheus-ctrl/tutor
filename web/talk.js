@@ -655,6 +655,13 @@ function syncPosition() {
   try {
     sessionStorage.setItem('tutorLastPosition', JSON.stringify({ paper: state.paper, index: Number(index) }));
   } catch (e) { /* ignore */ }
+  // 让计划页的「下一题」知道我现在在哪一卷/哪一题
+  try {
+    fetch('/api/app/position', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paper: state.paper, index: Number(index) }),
+    }).catch(() => {});
+  } catch (e) { /* ignore */ }
 }
 
 async function loadPapers() {

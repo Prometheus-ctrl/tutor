@@ -182,43 +182,122 @@ PHASE_LABELS = {
 }
 
 
-def next_problem(plan_id):
-    """当前计划下一题：到期最早优先，否则按整卷顺序取未完成题。"""
+LAST_POSITION_KEY = "last_positions"
+
+
+def save_last_position(paper_id, index):
+    """记住“最近打开的题目”（按计划分开存），给计划页的「下一题」用。"""
     c = _conn()
     try:
-        rows = c.execute(
-            "SELECT x.id, x.paper_id, x.no, x.status, r.due, p.title AS paper_title, "
-            "u.status AS unit_status "
-            "FROM problems x JOIN papers p ON p.id=x.paper_id "
-            "LEFT JOIN reviews r ON r.problem_id=x.id "
-            "LEFT JOIN plan_units u ON u.problem_id=x.id "
-            "WHERE p.plan_id=? ORDER BY COALESCE(CAST(substr(p.title,1,4) AS INTEGER),9999), p.created_at, x.rowid",
-            (plan_id,),
-        ).fetchall()
-        if not rows:
-            return None
+        row = c.execute("SELECT plan_id FROM papers WHERE id=?", (paper_id,)).fetchone()
+        if not row or not row["plan_id"]:
+            return False
+        try:
+            raw = c.execute("SELECT value FROM settings WHERE key=?", (LAST_POSITION_KEY,)).fetchone()
+            data = json.loads(raw["value"]) if raw else {}
+        except Exception:
+            data = {}
+        if not isinstance(data, dict):
+            data = {}
+        data[row["plan_id"]] = {"paper": paper_id, "index": int(index or 0), "at": _now_iso()}
+        c.execute(
+            "INSERT INTO settings(key,value) VALUES(?,?) "
+            "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            (LAST_POSITION_KEY, json.dumps(data, ensure_ascii=False)),
+        )
+        c.commit()
+        return True
+    finally:
+        c.close()
+
+
+def _last_position(c, plan_id):
+    try:
+        row = c.execute("SELECT value FROM settings WHERE key=?", (LAST_POSITION_KEY,)).fetchone()
+        data = json.loads(row["value"]) if row else {}
+        pos = data.get(plan_id) if isinstance(data, dict) else None
+        return pos if isinstance(pos, dict) else None
+    except Exception:
+        return None
+
+
+def next_problem(plan_id):
+    """当前计划下一题：到期复习优先；否则从最近打开的卷继续；再否则按年份取未完成。"""
+    c = _conn()
+    try:
         now = _now_iso()
-        due = [r for r in rows if r["due"] and r["due"] <= now]
-        due.sort(key=lambda r: r["due"])
-        chart = None
+        chosen = None
+        # 1) 计划内到期复习题优先
+        due = c.execute(
+            "SELECT x.id, x.paper_id, x.no, p.title AS paper_title "
+            "FROM problems x JOIN papers p ON p.id=x.paper_id "
+            "JOIN reviews r ON r.problem_id=x.id "
+            "WHERE p.plan_id=? AND r.due IS NOT NULL AND r.due<=? "
+            "ORDER BY r.due LIMIT 1",
+            (plan_id, now),
+        ).fetchone()
         if due:
-            chart = due[0]
-        else:
-            pending = [r for r in rows if (r["unit_status"] or "pending") != "finished"]
+            chosen = {"id": due["id"], "paper_id": due["paper_id"], "no": due["no"],
+                      "paper_title": due["paper_title"]}
+        # 2) 最近打开的卷：从那个位置往后找第一道未完成
+        if not chosen:
+            pos = _last_position(c, plan_id)
+            if pos and pos.get("paper"):
+                prow = c.execute(
+                    "SELECT id, title FROM papers WHERE id=? AND plan_id=?",
+                    (pos["paper"], plan_id),
+                ).fetchone()
+                if prow:
+                    prs = c.execute(
+                        "SELECT x.id, x.no, COALESCE(u.status, 'pending') AS unit_status "
+                        "FROM problems x LEFT JOIN plan_units u ON u.problem_id=x.id "
+                        "WHERE x.paper_id=? ORDER BY x.rowid",
+                        (pos["paper"],),
+                    ).fetchall()
+                    start = min(max(int(pos.get("index") or 0), 0), max(0, len(prs) - 1))
+                    pick = None
+                    # 先看当前位置这道题：没做完就是“继续这题”
+                    if prs and (prs[start]["unit_status"] or "pending") != "finished":
+                        pick = prs[start]
+                    if not pick:
+                        for r in prs[start + 1:]:
+                            if (r["unit_status"] or "pending") != "finished":
+                                pick = r
+                                break
+                    if not pick:
+                        for r in prs[:start]:
+                            if (r["unit_status"] or "pending") != "finished":
+                                pick = r
+                                break
+                    if pick:
+                        chosen = {"id": pick["id"], "paper_id": pos["paper"], "no": pick["no"],
+                                  "paper_title": prow["title"]}
+        # 3) 兜底：按年份顺序第一道未完成
+        if not chosen:
+            pending = c.execute(
+                "SELECT x.id, x.paper_id, x.no, p.title AS paper_title "
+                "FROM problems x JOIN papers p ON p.id=x.paper_id "
+                "LEFT JOIN plan_units u ON u.problem_id=x.id "
+                "WHERE p.plan_id=? AND COALESCE(u.status, 'pending')!='finished' "
+                "ORDER BY COALESCE(CAST(substr(p.title,1,4) AS INTEGER),9999), p.created_at, x.rowid "
+                "LIMIT 1",
+                (plan_id,),
+            ).fetchone()
             if pending:
-                chart = pending[0]
-        if not chart:
+                chosen = {"id": pending["id"], "paper_id": pending["paper_id"], "no": pending["no"],
+                          "paper_title": pending["paper_title"]}
+        if not chosen:
             return None
         paper_rows = c.execute(
-            "SELECT id FROM problems WHERE paper_id=? ORDER BY rowid", (chart["paper_id"],)
+            "SELECT id FROM problems WHERE paper_id=? ORDER BY rowid", (chosen["paper_id"],)
         ).fetchall()
-        index = next((i for i, r in enumerate(paper_rows) if r["id"] == chart["id"]), 0)
+        index = next((i for i, r in enumerate(paper_rows) if r["id"] == chosen["id"]), 0)
         return {
-            "paper": chart["paper_id"],
+            "paper": chosen["paper_id"],
             "index": index,
-            "problem_id": chart["id"],
-            "no": chart["no"],
-            "paper_title": chart["paper_title"] or "",
+            "problem_id": chosen["id"],
+            "no": chosen["no"],
+            "paper_title": chosen["paper_title"] or "",
         }
     finally:
         c.close()

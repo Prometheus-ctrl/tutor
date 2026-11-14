@@ -1541,6 +1541,23 @@ class Handler(BaseHTTPRequestHandler):
             data = app_api.set_plan_status(str(body.get("planId") or ""), str(body.get("status") or ""))
             status = data.pop("status", 200) if isinstance(data, dict) else 500
             return self._json(status, data)
+        if path == "/api/app/position":
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+                body = json.loads(self.rfile.read(length).decode("utf-8")) if length > 0 else {}
+            except Exception:
+                return self._json(400, {"error": "invalid json"})
+            paper = str(body.get("paper") or "").strip()
+            if not paper:
+                return self._json(400, {"error": "paper required"})
+            try:
+                index = int(body.get("index") or 0)
+            except (TypeError, ValueError):
+                index = 0
+            try:
+                return self._json(200, {"ok": bool(app_api.save_last_position(paper, index))})
+            except Exception as e:
+                return self._json(500, {"error": str(e)})
         if path == "/api/app/paper/assign":
             try:
                 length = int(self.headers.get("Content-Length") or 0)
