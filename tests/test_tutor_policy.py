@@ -22,6 +22,29 @@ class TutorPolicyTest(unittest.TestCase):
         for text, move in cases.items():
             self.assertEqual(tutor_policy.classify_move(text), move, text)
 
+    def test_buhui_is_not_always_stuck(self):
+        """“不会出现/会不会”是陈述或提问，不能算学生卡住。"""
+        cases = {
+            "在这过程中，子树是的层高是不会变化的": "answer",
+            "右两边就是跟到父节点那边去，不会出现层高加一": "answer",
+            "那是会不会有线索树没有null？ 应该不可能吧": "question",
+        }
+        for text, move in cases.items():
+            self.assertEqual(tutor_policy.classify_move(text), move, text)
+
+    def test_real_stuck_phrases_still_stuck(self):
+        cases = (
+            "嗯，等一下，二路归并排序我还不会，我得再去看一看视频。",
+            "嗯，然后基数排序，我好像一点都不知道，我一无所知。",
+            "分桶的那部分不太清楚，就是不知道链表是怎么连的。",
+            "这个我不会做",
+            "我卡在这里了",
+            "我还没懂",
+            "不会",
+        )
+        for text in cases:
+            self.assertEqual(tutor_policy.classify_move(text), "stuck", text)
+
     def test_probe_limit_then_hint(self):
         state = tutor_policy.initial_state()
         action, state = tutor_policy.next_action(state, "answer")

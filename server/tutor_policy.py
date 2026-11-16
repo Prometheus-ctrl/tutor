@@ -11,7 +11,23 @@
 """
 import re
 
-DISTRESS = ("进行不下去", "不知道", "不会", "卡住", "别问", "给提示", "跳过", "循环", "不想做")
+DISTRESS = (
+    "进行不下去", "卡住", "卡在", "不懂", "不明白", "不太清楚", "不清楚",
+    "没思路", "没头绪", "一无所知", "看不懂", "听不明白", "跟不上",
+    "不会做", "不会写", "不会讲", "不会算", "不会证", "别问", "给提示",
+)
+# “不会 / 不知道”只有在说学生自己的状态时才算卡住。
+# “会不会有……”“不会出现层高加一”“层高是不会变化的”是普通提问或陈述，
+# 2026-11-15 复盘的 6 条 stuck 里有 3 条是这样误判的。
+NOT_STUCK = re.compile(
+    r"会不会|能不能|是不是|该不该|要不要"
+    r"|不会(出现|变|影响|再|是|有|增加|减少|溢出|重复|一样|相等)"
+)
+SELF_STUCK = re.compile(
+    r"(我|俺|咱|自己)[^，。？！,.?!]{0,6}(不会|不知道|不懂|不明白|不清楚|没懂|没听懂|没学会)"
+    r"|(好像|感觉|确实|真的|反正)[^，。？！,.?!]{0,4}(不会|不知道|不懂)"
+)
+BARE_STUCK = re.compile(r"^(不会|不知道|不懂|不明白|不清楚)[。！!，,]*$")
 FRUSTRATION = ("不想做", "烦死", "崩了", "放弃", "受不了", "没心情", "不想学")
 EXPLAIN = ("直接讲", "给我完整解法", "别问了")
 OFF_TOPIC = ("这题是不是考", "另一门", "题外")
@@ -19,11 +35,27 @@ OFF_TOPIC = ("这题是不是考", "另一门", "题外")
 ACTIONS = ("probe", "hint", "explain", "check", "advance", "close", "redirect", "pause")
 
 
+def is_stuck(text):
+    """判断学生是不是真的卡住。
+
+    “不会出现层高加一”“那是会不会有……”是陈述/提问，不是卡住；
+    只有“我不会”“不知道”“不会做”这类说自己状态的说法才算。
+    """
+    t = str(text or "").strip()
+    if NOT_STUCK.search(t):
+        return False
+    if any(k in t for k in DISTRESS):
+        return True
+    if SELF_STUCK.search(t):
+        return True
+    return bool(BARE_STUCK.match(t))
+
+
 def classify_move(text):
     t = str(text or "").strip()
     if any(k in t for k in FRUSTRATION):
         return "frustration"
-    if any(k in t for k in DISTRESS):
+    if is_stuck(t):
         return "stuck"
     if any(k in t for k in EXPLAIN):
         return "request_explain"

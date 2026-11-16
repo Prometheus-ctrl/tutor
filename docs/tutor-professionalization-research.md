@@ -1123,3 +1123,61 @@ _question_streak(history) >= 2
 
 - 如果连续问句仍高，考虑只在背景路径接一次 `sanitize_questions`（一条主问）做小实验；
 - 等复习/考试模式真实会话；不造合成题。
+
+## 2026-11-15 21:00
+
+**问题**：11-08 之后有 32 条新会话，动作契约、科目预算、提示阶梯、style flags 还成立吗？上一轮挂起的“`sanitize_questions` 接到背景路径”该不该做？
+
+**实验**：
+
+- 新 session：11-09 至 11-15 共 32 条有 turns 的会话（11-09 5、11-10 2、11-11 6、11-12 4、11-13 6、11-14 2、11-15 7），全部 `mode=tutor`；题目覆盖 408 2009/2010 真题 18 道（单选），**仍然没有数二、英二、写作、复习/考试模式**；
+- 用 `tutor_eval.py` 逐条量化（只读打开 `app.db`，未改用户数据）；
+- 查 `tutor_states`：仍是 2 条，最新 10-29，11-09 之后的会话全部没有 state 记录；
+- 查写作数据：`writing_tasks` 最新 `updated_at` 仍是 10-28 07:37，`writing_revisions` 无新增。
+
+**结果**：
+
+- 32 条 session 共 186 个 user turn、186 个 assistant turn、32 个 summary turn；
+- assistant 问句 60 次，最长连续问句 4（11-09 / 11-14 / 11-15 各一条），较 11-06 那批的 13 明显下降；
+- 模拟策略最大连续 probe 2，最终 hint_level 0 / 2 / 3；
+- style flags：只有 `multi_question` 6，`praise` / `vague` 都是 0；
+- 人工抽查 4 条长会话（`781dc84d` / `4ee1d255` / `ffa510f2` / `b15db114`）：提问基本落在“下一步该算什么”“这两种排序第一趟是什么样”，没有为了问而问，也没有反复盘问同一卡点。
+
+**判断**：
+
+- 动作契约、科目预算（408 单选 max_probes=2）、提示阶梯在真实数据上没有越界，策略层保持；
+- 连续问句从 13 降到 4，说明 11-08 之后 prompt 侧“不要为了问而问”在生效，**不再需要把 `sanitize_questions` 接进背景路径**，这条挂起项关掉；
+- 但发现一个真实缺陷：`classify_move` 把“不会出现层高加一”“层高是不会变化的”“会不会有线索树没有null”判成 `stuck`。这类句子是学生陈述/提问，不是卡住；被判成 stuck 会把 `hint_level` 一路推到 3，触发“已给三级提示，先停一下”的暂停话术，把正常分析打断；
+- 32 条里 6 条 stuck，其中 3 条是这种误判（`4e516e4c`、`60abadd4`、`08f07f8e`）。
+
+**改动**：
+
+- `tutor_policy.py` 新增 `is_stuck`：
+  - `NOT_STUCK` 排除“会不会 / 能不能 / 是不是 / 不会出现 / 不会变 / 不会影响……”；
+  - `SELF_STUCK` 只认“我不会 / 我不知道 / 我还没懂 / 好像不知道”这类学生自述；
+  - `BARE_STUCK` 保留整句就是“不会 / 不知道”的情况；
+  - `DISTRESS` 补充“卡在 / 不懂 / 不明白 / 不太清楚 / 不清楚 / 没思路 / 没头绪 / 一无所知 / 看不懂 / 听不懂 / 跟不上 / 不会做 / 不会写 / 不会讲 / 不会算 / 不会证”。
+- `tests/test_tutor_policy.py` 新增两个用例：`test_buhui_is_not_always_stuck`、`test_real_stuck_phrases_still_stuck`，用例文本直接取自真实会话。
+
+**验证**：
+
+- 策略相关测试 34 个通过（`test_tutor_policy` / `test_tutor_eval` / `test_tutor_scenarios` / `test_tutor_router` / `test_tutor_validator` / `test_prompt_loader`）；
+- 用同一批 32 条真实会话做前后对比重放：
+  - stuck 6 → 5，reason 76 → 78，answer 62 → 61；
+  - 最大连续 probe 仍是 2，没有变差；
+  - `60abadd4` 的 hint_level 3 → 0、`08f07f8e` 的 2 → 0，正好是两条误判会话，暂停话术不再误触发；
+  - 真正卡住的 `b15db114`（基数排序那次“一点都不知道”）仍判 stuck，提示阶梯照常。
+- 新增关键词没有在真实数据里产生新的误判：出现的 10 条全是学生真实表达卡住（“这题有一点不明白”“完全听不懂”“B 树的定义不清楚”等）。
+
+**边界**（写清楚，免得下一轮误以为已修好）：
+
+- 这次只动 `tutor_policy`。线上讲题走的是 `_chat_background`（`TUTOR_BACKGROUND_ONLY` 默认 `1`），它不调用 `classify_move`，所以**线上回复本轮没有变化**，修复的是离线评估、shadow 记录和以后接回 `_chat` 的路径；
+- 背景路径不写 `tutor_states`，这是 11-09 之后仍然 0 条 state 的原因，不是 bug；
+- 连续问句最长 4 仍出现在背景路径（无 `sanitize_questions`），按上面判断先不动；
+- `review` / `exam` 模式依旧没有一条真实会话，科目预算里的英二、写作、数二也没有新数据。
+
+**下一次**：
+
+- 先等非 408 科目或复习/考试模式的真实会话，再动科目预算；
+- 如果背景路径连续问句重新升高，再考虑只裁一条主问；
+- 不再为没有数据的科目造合成题。
