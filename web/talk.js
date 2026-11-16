@@ -24,6 +24,11 @@ async function refreshMicDevices() {
   try {
     const devices = await navigator.mediaDevices.enumerateDevices();
     list = devices.filter(d => d.kind === 'audioinput' && d.deviceId && d.deviceId !== 'default' && d.deviceId !== 'communications');
+    // 默认输出是不是耳机：是的话录音时关掉回声消除（否则浏览器里播放的白噪音会被当回声，连人声一起压）
+    const outs = devices.filter(d => d.kind === 'audiooutput');
+    const defOut = outs.find(d => d.deviceId === 'default') || outs[0];
+    const outLabel = defOut ? String(defOut.label || '') : '';
+    state.headphoneOut = outLabel ? /耳机|耳麦|headphone|headset|earbud|earphone/i.test(outLabel) : null;
   } catch (e) { list = []; }
   const cur = micDeviceId;
   sel.innerHTML = '';
@@ -856,6 +861,18 @@ function encodeWav(samples, sampleRate) {
   return buf;
 }
 
+function audioConstraints() {
+  // 耳机输出时关掉回声消除：浏览器会把“正在播放的声音”当回声，白噪音持续播放时容易连人声一起压掉
+  const headphone = state.headphoneOut === true && !speakerMode;
+  return {
+    channelCount: 1,
+    echoCancellation: !speakerMode && !headphone,
+    noiseSuppression: !speakerMode,
+    autoGainControl: { ideal: true },
+    sampleRate: { ideal: 16000 },
+  };
+}
+
 function b64(buf) {
   const bytes = new Uint8Array(buf);
   let s = '';
@@ -885,13 +902,7 @@ async function startRecording(target) {
   }
   let stream;
   let fellBack = false;
-  const audio = {
-    channelCount: 1,
-    echoCancellation: !speakerMode,
-    noiseSuppression: !speakerMode,
-    autoGainControl: { ideal: true },
-    sampleRate: { ideal: 16000 },
-  };
+  const audio = audioConstraints();
   if (micDeviceId) audio.deviceId = { exact: micDeviceId };
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio });
@@ -935,7 +946,8 @@ async function startRecording(target) {
   button.textContent = target === 'finish' ? '⏹ 停止' : '⏹';
   button.classList.add('rec');
   button.disabled = false;
-  status('录音中…（' + micLabel + '）再按一下停止。');
+  const hpNote = (!speakerMode && state.headphoneOut === true) ? ' · 耳机输出，已关回声消除' : '';
+  status('录音中…（' + micLabel + hpNote + '）再按一下停止。');
 }
 
 async function stopRecording(auto) {

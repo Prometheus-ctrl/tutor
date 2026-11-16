@@ -461,7 +461,7 @@
     <label class="model"><span>模型</span><select id="modelSelect" title="切换讲题模型"></select></label>
     <button id="usageBtn" class="usage-btn" type="button" title="今天的 API 花费估算（点击看明细）">¥ —</button>
     <label class="model mic-pick" title="录音设备：选完会记住，插拔设备会自动刷新"><span>麦克风</span><select id="micSelect"></select></label>
-    <label class="model mic-pick" title="外放模式：关闭浏览器回声消除/降噪，避免外放时把自己的声音一起掐掉；戴耳机时不要勾"><span>外放</span><input type="checkbox" id="speakerToggle"></label>
+    <label class="model mic-pick" title="外放模式：关闭浏览器回声消除/降噪。戴耳机时一般不用勾（检测到耳机输出会自动关回声消除）；在用扬声器外放时才需要勾"><span>外放</span><input type="checkbox" id="speakerToggle"></label>
   </div>
 </header>
 
@@ -690,6 +690,6 @@
   pane.appendChild(marks);
 })();
 </script>
-<script src="/talk.js?v=20261116c"></script>
+<script src="/talk.js?v=20261116d"></script>
 </body>
 </html>
