@@ -797,6 +797,30 @@ function mergeChunks(chunks) {
   return out;
 }
 
+// 裁掉首尾静音（保留 0.15s 余量），让“有声%”反映真正说话的部分，也省 ASR 时长
+function trimSilence(data, sampleRate) {
+  const win = Math.max(1, Math.round(sampleRate * 0.1));
+  const n = Math.floor(data.length / win);
+  if (n < 3) return data;
+  const threshold = 0.006;
+  let first = -1, last = -1;
+  for (let k = 0; k < n; k++) {
+    let s2 = 0;
+    const start = k * win;
+    for (let j = start; j < start + win; j++) s2 += data[j] * data[j];
+    if (Math.sqrt(s2 / win) > threshold) {
+      if (first < 0) first = k;
+      last = k;
+    }
+  }
+  if (first < 0) return data;
+  const margin = Math.round(0.15 * sampleRate);
+  const start = Math.max(0, first * win - margin);
+  const end = Math.min(data.length, (last + 1) * win + margin);
+  if (end - start < sampleRate * 0.3) return data;
+  return data.subarray(start, end);
+}
+
 function downsample(data, inRate, outRate) {
   if (outRate === inRate) return data;
   const ratio = inRate / outRate;
@@ -909,7 +933,7 @@ async function startRecording(target) {
   button.textContent = target === 'finish' ? '⏹ 停止' : '⏹';
   button.classList.add('rec');
   button.disabled = false;
-  status('录音中… 再按一下停止。');
+  status('录音中…（' + micLabel + '）再按一下停止。');
 }
 
 async function stopRecording(auto) {
@@ -924,7 +948,9 @@ async function stopRecording(auto) {
   r.button.textContent = r.target === 'finish' ? '🎤 语音' : '🎤';
   r.button.classList.remove('rec');
   if (seconds < 0.35) { status('太短了，再说一次。', 'err'); return; }
-  const merged = mergeChunks(r.chunks);
+  const mergedAll = mergeChunks(r.chunks);
+  const merged = trimSilence(mergedAll, r.sampleRate);
+  const trimmedSec = Math.max(0, (mergedAll.length - merged.length) / r.sampleRate);
   let peak = 0, sq = 0;
   for (let i = 0; i < merged.length; i++) {
     const v = Math.abs(merged[i]);
@@ -951,7 +977,8 @@ async function stopRecording(auto) {
   const recLevel = $('#recLevel');
   if (recLevel) {
     recLevel.hidden = false;
-    recLevel.textContent = '上次录音（' + (r.micLabel || '系统默认') + '）：' + levelNote;
+    const eff = trimmedSec > 0.3 ? ' · 有效 ' + (merged.length / r.sampleRate).toFixed(1) + 's' : '';
+    recLevel.textContent = '上次录音（' + (r.micLabel || '系统默认') + '）：' + levelNote + eff;
   }
   if (peak < 0.002) {
     r.button.disabled = false;
