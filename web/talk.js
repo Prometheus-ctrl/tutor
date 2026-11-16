@@ -1004,7 +1004,7 @@ async function stopRecording(auto) {
   const activeFrames = frames ? Math.round(activePct * frames / 100) : 0;
   if (speechSec < 0.45 && activeFrames < 3) {
     r.button.disabled = false;
-    status('没听完整' + levelNote + '：可能只录到一下杂音，靠近麦克风再说一次。', 'err');
+    status('没听完整' + levelNote + '：可能只录到一下声音，靠近麦克风完整说一句再停。', 'err');
     return;
   }
   const wav = encodeWav(downsample(merged, r.sampleRate, 16000), 16000);
@@ -1022,7 +1022,7 @@ async function stopRecording(auto) {
     }
     if (data.echo) {
       r.button.disabled = false;
-      status('这段像是题目原文（多半只录到杂音或声音太小），没听清，再说一次。', 'err');
+      status('这段听起来像题目原文（多半是声音太小或没录清），没听清，再说一次。', 'err');
       return;
     }
     const heard = String(data.text || '').trim();
