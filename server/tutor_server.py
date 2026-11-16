@@ -1021,6 +1021,26 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:
             return self._json(400, {"error": str(e)})
 
+    def _preference_apply(self, body):
+        """把学生选中的那版回复应用到会话（替换最后一条学伴回复）。"""
+        try:
+            sid = str(body.get("sessionId") or "")
+            text = str(body.get("text") or "").strip()
+            if not sid or not text:
+                return self._json(400, {"error": "sessionId and text required"})
+            if not session_store.replace_last_assistant(sid, text, text):
+                return self._json(404, {"error": "no assistant turn"})
+            try:
+                sess = session_store.get(sid)
+                if sess:
+                    app_api.save_session(sess)
+                    app_api.replace_session_turns(sid, sess.get("turns") or [])
+            except Exception:
+                pass
+            return self._json(200, {"ok": True})
+        except Exception as e:
+            return self._json(500, {"error": str(e)})
+
     def _chat_background(self, body):
         """最小学伴：只给身份和题目背景，不注入教案/模式/校验规则。"""
         text = str(body.get("text") or "").strip()
@@ -1608,7 +1628,7 @@ class Handler(BaseHTTPRequestHandler):
             except (TypeError, ValueError):
                 return self._json(400, {"error": "bad available_min"})
             return self._json(200, app_api.generate_time(body.get("date"), minutes))
-        if path in ("/api/asr", "/api/chat", "/api/tts", "/api/normalize", "/api/finish", "/api/finish/start", "/api/finish/summary", "/api/finish/complete", "/api/review", "/api/app/compare", "/api/app/report/generate", "/api/preference/pair", "/api/preference/vote", "/api/companion/feedback", "/api/chat/export", "/api/app/figure"):
+        if path in ("/api/asr", "/api/chat", "/api/tts", "/api/normalize", "/api/finish", "/api/finish/start", "/api/finish/summary", "/api/finish/complete", "/api/review", "/api/app/compare", "/api/app/report/generate", "/api/preference/pair", "/api/preference/vote", "/api/preference/apply", "/api/companion/feedback", "/api/chat/export", "/api/app/figure"):
             try:
                 length = int(self.headers.get("Content-Length") or 0)
                 if length <= 0 or length > 16 * 1024 * 1024:
@@ -1646,6 +1666,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._preference_pair(body)
             if path == "/api/preference/vote":
                 return self._preference_vote(body)
+            if path == "/api/preference/apply":
+                return self._preference_apply(body)
             return self._tts(body)
         m = re.match(r"^/api/paper/([^/]+)/(save|reread|retake)$", path)
         if not m:

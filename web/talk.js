@@ -1783,6 +1783,11 @@ async function votePreference(choice) {
   const pair = state.prefPair;
   if (!pair) return;
   hidePrefCard();
+  const chosen = choice === 'a' ? pair.a.text : (choice === 'b' ? pair.b.text : '');
+  let lastIdx = -1;
+  state.history.forEach((m, i) => { if (m.role === 'assistant') lastIdx = i; });
+  const current = lastIdx >= 0 ? String(state.history[lastIdx].content || '') : '';
+  const replace = !!(chosen && current && chosen.trim() !== current.trim());
   try {
     await api('/api/preference/vote', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1798,7 +1803,31 @@ async function votePreference(choice) {
         choice,
       })
     });
-    status('已记录这次的偏好。', 'ok');
+    let applied = false;
+    if (replace && state.sessionId) {
+      try {
+        await api('/api/preference/apply', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: state.sessionId,
+            paper: state.paper,
+            index: Number($('#problem').value || 0),
+            text: chosen,
+          })
+        });
+        applied = true;
+      } catch (e) { /* 应用失败不影响偏好记录 */ }
+    }
+    if (replace && applied && lastIdx >= 0) {
+      state.history[lastIdx].content = chosen;
+      state.history[lastIdx].display = '';
+      state.history[lastIdx].speech = chosen;
+      state.lastSpeech = chosen;
+      renderHistory();
+      status('已记录偏好，并换成你选的那版回复。', 'ok');
+    } else {
+      status('已记录这次的偏好。', 'ok');
+    }
   } catch (e) {
     status('偏好记录失败：' + e.message, 'err');
   }

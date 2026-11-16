@@ -201,6 +201,27 @@ def end(sid):
         c.close()
 
 
+def replace_last_assistant(sid, content, speech=""):
+    """把会话里最后一条 assistant 回复换成指定文本（偏好选择后应用）。"""
+    content = str(content or "")
+    if not content.strip():
+        return False
+    c = _conn()
+    try:
+        row = c.execute(
+            "SELECT id FROM turns WHERE session_id=? AND role='assistant' ORDER BY id DESC LIMIT 1",
+            (sid,),
+        ).fetchone()
+        if not row:
+            return False
+        c.execute("UPDATE turns SET content=?, speech=? WHERE id=?", (content, str(speech or ""), row["id"]))
+        c.execute("UPDATE sessions SET updated_at=? WHERE id=?", (int(time.time()), sid))
+        c.commit()
+        return True
+    finally:
+        c.close()
+
+
 def recent(limit=10):
     c = _conn()
     try:
