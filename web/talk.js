@@ -1022,7 +1022,7 @@ async function stopRecording(auto) {
     }
     if (data.echo) {
       r.button.disabled = false;
-      status('这段听起来像题目原文（多半是声音太小或没录清），没听清，再说一次。', 'err');
+      status('这段几乎都是题目原文（可能是没开口或声音太小），没听清，再说一次。', 'err');
       return;
     }
     const heard = String(data.text || '').trim();

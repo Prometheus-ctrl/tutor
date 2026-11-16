@@ -345,19 +345,23 @@ def _normalize_match_text(s):
 
 
 def looks_like_context_echo(text, context):
-    """短音频/只录到杂音时，ASR 可能把题目上下文当成听写结果返回。
+    """短音频/没开口时，ASR 可能把题目上下文整段当成听写结果返回。
 
-    只和“题目/选项”部分比对（不含“刚才已经说过”），连续 14 个字重合就判为脑补。
+    只和“题目/选项”部分比对（不含“刚才已经说过”）。
+    判定标准：转录内容里 **≥85% 的字都能在题目原文里找到** ——
+    学生正常讲解会引用几个词，但不会整句都是原文，所以不会误伤。
     """
     t = _normalize_match_text(text)
     head = str(context or "").split("刚才已经说过")[0]
     c = _normalize_match_text(head)
     if len(t) < 10 or len(c) < 10:
         return False
-    for i in range(0, len(t) - 13):
-        if t[i:i + 14] in c:
-            return True
-    return False
+    if t in c:
+        return True
+    import difflib
+    sm = difflib.SequenceMatcher(None, t, c, autojunk=False)
+    matched = sum(b.size for b in sm.get_matching_blocks())
+    return matched / float(len(t)) >= 0.85
 
 
 def safe_remove(path):
