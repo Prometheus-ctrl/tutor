@@ -340,6 +340,26 @@ def wav_peak(path):
         return 0.0
 
 
+def _normalize_match_text(s):
+    return re.sub(r"[^\w\u4e00-\u9fff]+", "", str(s or ""))
+
+
+def looks_like_context_echo(text, context):
+    """短音频/只录到杂音时，ASR 可能把题目上下文当成听写结果返回。
+
+    只和“题目/选项”部分比对（不含“刚才已经说过”），连续 14 个字重合就判为脑补。
+    """
+    t = _normalize_match_text(text)
+    head = str(context or "").split("刚才已经说过")[0]
+    c = _normalize_match_text(head)
+    if len(t) < 10 or len(c) < 10:
+        return False
+    for i in range(0, len(t) - 13):
+        if t[i:i + 14] in c:
+            return True
+    return False
+
+
 def safe_remove(path):
     """删除文件：任何 BaseException 都不能中断正在处理的请求。
 
@@ -834,6 +854,9 @@ class Handler(BaseHTTPRequestHandler):
             if wav_peak(path) < 0.002:
                 return self._json(200, {"text": "", "silent": True, "usage": {}})
             r = speech.transcribe_wav(path, body.get("context") or "")
+            text = (r.get("text") or "").strip()
+            if text and looks_like_context_echo(text, body.get("context") or ""):
+                return self._json(200, {"text": "", "echo": True, "usage": r.get("usage") or {}})
             return self._json(200, r)
         except Exception as e:
             return self._json(500, {"error": "识别失败：%s" % e})

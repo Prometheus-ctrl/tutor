@@ -797,12 +797,13 @@ function mergeChunks(chunks) {
   return out;
 }
 
-// 裁掉首尾静音（保留 0.15s 余量），让“有声%”反映真正说话的部分，也省 ASR 时长
+// 裁掉首尾静音（保守：短录音不裁、保留足够余量），让“有声%”反映说话部分
 function trimSilence(data, sampleRate) {
+  if (data.length < sampleRate * 1.5) return data;
   const win = Math.max(1, Math.round(sampleRate * 0.1));
   const n = Math.floor(data.length / win);
   if (n < 3) return data;
-  const threshold = 0.006;
+  const threshold = 0.004;
   let first = -1, last = -1;
   for (let k = 0; k < n; k++) {
     let s2 = 0;
@@ -814,10 +815,11 @@ function trimSilence(data, sampleRate) {
     }
   }
   if (first < 0) return data;
-  const margin = Math.round(0.15 * sampleRate);
+  const margin = Math.round(0.3 * sampleRate);
   const start = Math.max(0, first * win - margin);
   const end = Math.min(data.length, (last + 1) * win + margin);
   if (end - start < sampleRate * 0.3) return data;
+  if (data.length - (end - start) < sampleRate * 0.25) return data;
   return data.subarray(start, end);
 }
 
@@ -985,6 +987,14 @@ async function stopRecording(auto) {
     status('没听到声音' + levelNote + '：检查顶部「麦克风」选的设备、系统输入音量；用 Broadcast 时先确认降噪开关已开、电平条会跳。', 'err');
     return;
   }
+  // 只录到一下杂音/极短音节时不送识别，避免模型拿题目上下文“脑补”出整句话
+  const speechSec = merged.length / r.sampleRate;
+  const activeFrames = frames ? Math.round(activePct * frames / 100) : 0;
+  if (speechSec < 0.45 && activeFrames < 3) {
+    r.button.disabled = false;
+    status('没听完整' + levelNote + '：可能只录到一下杂音，靠近麦克风再说一次。', 'err');
+    return;
+  }
   const wav = encodeWav(downsample(merged, r.sampleRate, 16000), 16000);
   status(auto ? '到 60 秒了，正在识别…' : '正在识别…');
   r.button.disabled = true;
@@ -996,6 +1006,11 @@ async function stopRecording(auto) {
     if (data.silent) {
       r.button.disabled = false;
       status('没听到声音' + levelNote + '（服务端判定静音）：检查麦克风设备/输入音量。', 'err');
+      return;
+    }
+    if (data.echo) {
+      r.button.disabled = false;
+      status('这段像是题目原文（多半只录到杂音或声音太小），没听清，再说一次。', 'err');
       return;
     }
     const heard = String(data.text || '').trim();
