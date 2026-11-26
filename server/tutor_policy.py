@@ -111,9 +111,20 @@ def next_action(state, move):
         return "explain", s
     if move == "reason":
         s["probes"] = 0
+        # 提示阶梯是按“同一个卡点”算的：学生已经往下推进一步，
+        # 上一个卡点的三级提示不该继续压着这一段（否则一旦到过 L3，
+        # 后面每句只说答案都会被判成“已给三级提示，先停一下”）。
+        s["hint_level"] = 0
         s["last_action"] = "advance"
         return "advance", s
     # answer only
+    if int(s["hint_level"]) >= 3:
+        # 三级提示已经给过，学生还在接话（只报答案）：这一卡点的阶梯到此为止。
+        # 再判 hint 会每轮重复“先停一下”，变成机械复读；回到推进，重新开始记卡点。
+        s["probes"] = 0
+        s["hint_level"] = 0
+        s["last_action"] = "advance"
+        return "advance", s
     if int(s["probes"]) >= 2 or int(s["hint_level"]) >= 1:
         s["hint_level"] = min(3, int(s["hint_level"]) + 1)
         s["probes"] = 0

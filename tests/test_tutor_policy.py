@@ -62,6 +62,26 @@ class TutorPolicyTest(unittest.TestCase):
         self.assertEqual(action, "hint")
         self.assertEqual(state["hint_level"], 2)
 
+    def test_hint_ladder_resets_after_advance(self):
+        """提示阶梯按同一个卡点算：学生推进了一步，就不该继续停在暂停。"""
+        state = {"hint_level": 3, "probes": 0, "checked": False, "last_action": "hint"}
+        action, state = tutor_policy.next_action(state, "reason")
+        self.assertEqual(action, "advance")
+        self.assertEqual(state["hint_level"], 0)
+        action, state = tutor_policy.next_action(state, "answer")
+        self.assertEqual(action, "probe")
+
+    def test_stuck_still_escalates_without_advance(self):
+        state = {}
+        for level in (1, 2, 3):
+            action, state = tutor_policy.next_action(state, "stuck")
+            self.assertEqual(action, "hint")
+            self.assertEqual(state["hint_level"], level)
+        # 卡满三级后不再机械重复暂停话术，而是把节奏交回学生
+        action, state = tutor_policy.next_action(state, "answer")
+        self.assertEqual(action, "advance")
+        self.assertEqual(state["hint_level"], 0)
+
     def test_frustration_pauses_instead_of_probing(self):
         action, state = tutor_policy.next_action({}, "frustration")
         self.assertEqual(action, "pause")
