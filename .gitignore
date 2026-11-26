@@ -6,3 +6,6 @@ tts/
 media/
 __pycache__/
 *.pyc
+
+# WorkBuddy 本地工作记录（含实验复盘，不进仓库）
+.workbuddy/
