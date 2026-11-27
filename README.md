@@ -133,6 +133,25 @@ http://127.0.0.1:8793/talk.html
 - ASR 有少量漏字，转写可手动改；
 - TTS 临时文件在 `tutor/data/tts/`，不会进 git。
 
+## 讲题引擎（engine）
+
+`/api/chat` 支持三种引擎，按 `body.engine` 或环境变量 `TUTOR_CHAT_ENGINE` 选择（都不设时保持旧行为）：
+
+- `background`（默认）：直通式，只给身份+题目背景，LLM 自由发挥；
+- `router`：旧半策略路径（角色路由+教案+校验），设 `TUTOR_BACKGROUND_ONLY=0` 时启用；
+- `loop`：**agent loop 引擎**——每轮先由策略状态机决策教学动作（probe/hint/check/…），生成时注入该动作的契约约束，回复不合契约就把要求反馈给模型重试（≤2 次），仍不合格用兜底话术；决策状态按 session 持久化在 `tutor_states`，刷新后接着算。
+
+核心文件：`server/tutor_loop.py`（闭环控制器，规则优先于模型，LLM 只当生成工具，generate 依赖注入所以可单测）；决策层是 `server/tutor_policy.py`。
+
+离线验证（只读真实会话，不调模型不花钱）：
+
+```powershell
+cd tutor\server
+python tutor_replay.py
+```
+
+用 42+ 条真实 tutor 会话重放 loop，输出契约一次通过率、动作分布、兜底率。
+
 ## 本题收尾 + FSRS
 
 讲完一道题，点题目卡右上角「结束本题」：

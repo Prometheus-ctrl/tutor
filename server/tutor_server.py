@@ -39,6 +39,7 @@ import feedback_store  # noqa: E402
 import companion_config  # noqa: E402
 import speech  # noqa: E402
 import tutor_policy  # noqa: E402
+import tutor_loop  # noqa: E402
 import tutor_router  # noqa: E402
 import tutor_scenarios  # noqa: E402
 import tutor_validator  # noqa: E402
@@ -1095,8 +1096,97 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(500, {"error": "对话失败：%s" % e})
 
     def _chat(self, body):
-        if os.environ.get("TUTOR_BACKGROUND_ONLY", "1") != "0":
-            return self._chat_background(body)
+        # engine: body 可覆盖，其次环境变量 TUTOR_CHAT_ENGINE；
+        # 都不设时保持旧行为（TUTOR_BACKGROUND_ONLY=0 → router，否则 background）。
+        engine = str(body.get("engine") or os.environ.get("TUTOR_CHAT_ENGINE") or "").strip()
+        if not engine:
+            engine = "router" if os.environ.get("TUTOR_BACKGROUND_ONLY") == "0" else "background"
+        if engine == "loop":
+            return self._chat_loop(body)
+        if engine == "router":
+            return self._chat_router(body)
+        return self._chat_background(body)
+
+    def _chat_loop(self, body):
+        """agent loop 引擎：策略状态机决策 → 按动作约束生成 → 契约校验重试 → 兜底。
+
+        与 background 的差别：每轮先由 tutor_policy 决定教学动作（probe/hint/…），
+        生成时注入该动作的约束，回复不合契约时带反馈重试（≤2 次），
+        仍不合格用策略层兜底话术；决策状态持久化在 tutor_states，供下一轮继续。
+        """
+        text = str(body.get("text") or "").strip()
+        if not text:
+            return self._json(400, {"error": "text required"})
+        display = str(body.get("display") or "").strip() or text
+        try:
+            cfg = companion_config.load()
+            pid = str(body.get("paper") or "")
+            idx = body.get("index")
+            mode = str(body.get("mode") or "tutor")
+            context = str(body.get("context") or "")
+            fig = _figure_description(body.get("paper"), body.get("index"))
+            if fig:
+                context += "\n\n题目图描述（只用于理解图形，不要复述给用户）：\n" + fig
+            memory = round_memory_block(pid, idx, mode) if pid and idx is not None else ""
+            if memory:
+                context += "\n\n" + memory
+            history = (
+                current_round_history(pid, idx, body.get("history") or [])
+                if pid and idx is not None
+                else (body.get("history") or [])
+            )
+            sid = str(body.get("sessionId") or "")
+            state = app_api.get_tutor_state(sid) if sid else None
+            plan = None
+            if pid and idx is not None:
+                try:
+                    p = self._problem(pid, int(idx))
+                    if p:
+                        plan = app_api.get_lesson_plan(p["id"])
+                except Exception:
+                    plan = None
+            model = body.get("model") or None
+            subject_id = body.get("subjectId") or "math2"
+            problem_type = body.get("problemType") or "single"
+
+            def _gen(t, hist, ctx, extra, meta):
+                return speech.chat_reply(
+                    t, hist, ctx, model, "tutor", subject_id, problem_type,
+                    background_only=False, extra=extra,
+                    history_window=cfg["chat"]["history_window"],
+                    temperature=cfg["chat"]["temperature"],
+                )
+
+            result = tutor_loop.TutorLoop(generate=_gen).step(
+                text, state=state, context=context, history=history, plan=plan,
+            )
+            r = {
+                "text": result["text"],
+                "speech": result["speech"],
+                "mode": "loop",
+                "router": {},
+                "loop": result["trace"],
+            }
+            if sid:
+                try:
+                    app_api.save_tutor_state(sid, result["state"])
+                except Exception:
+                    pass
+                try:
+                    session_store.append(sid, "user", text, display)
+                    session_store.append(sid, "assistant", r["text"], r["speech"])
+                    sess = session_store.get(sid)
+                    if sess:
+                        app_api.save_session(sess)
+                    app_api.append_turn(sid, "user", text, display)
+                    app_api.append_turn(sid, "assistant", r["text"], r["speech"])
+                except Exception:
+                    pass
+            return self._json(200, r)
+        except Exception as e:
+            return self._json(500, {"error": "对话失败：%s" % e})
+
+    def _chat_router(self, body):
         text = str(body.get("text") or "").strip()
         if not text:
             return self._json(400, {"error": "text required"})
